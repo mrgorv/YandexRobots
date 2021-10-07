@@ -173,10 +173,10 @@ public:
 private:
 	Coord position;
 	Coord destination;
-	RobotStatus status = IDLE;
 	uint16_t path_it = 0;
 	vector<Coord> path;
 	deque<vector<Coord>> plan;
+	RobotStatus status = IDLE;
 };
 
 class RobotManager {
@@ -203,8 +203,8 @@ public:
 	void PlaceOrder(Coord start, Coord finish) {
 		vector<Coord> route = WaveSearch(start, finish, city);
 		vector<int> times (robots.size());
-		for (Robot r : robots) times.push_back(r.GetAssumedTime() + WaveSearch(r.GetPos(), start, city).size());
-		size_t it = max_element(times.begin(), times.end()) - times.begin();
+		for (Robot r : robots) times.push_back(r.GetAssumedTime() + WaveSearch(r.GetDest(), start, city).size());
+		size_t it = min_element(times.begin(), times.end()) - times.begin();
 		robots[it].AssignRoute(WaveSearch(robots[it].GetDest(), start, city)).AssignRoute(route);
 	}
 private:
