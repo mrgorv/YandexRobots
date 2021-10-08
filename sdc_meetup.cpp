@@ -22,7 +22,6 @@ enum PointStatus {
 
 enum RobotStatus {
 	IDLE,
-	BUSY,
 	PICK,
 	DROP
 };
@@ -73,7 +72,7 @@ vector<Coord> WaveSearch(Coord pos, Coord dest, MapGrid& grid) {
 	    {
 	       int ny = y + movey[nd];
 	       int nx = x + movex[nd];
-	       if ( ny >= 0 && ny < field.size() && nx >= 0 && nx < field.size() && field[ny][nx] == step) {
+	       if (ny >= 0 && ny < field.size() && nx >= 0 && nx < field.size() && field[ny][nx] == step) {
 	          x = nx;
 	          y = ny;
 	          break;
@@ -108,20 +107,18 @@ public:
 		if (status == IDLE) {
 			status = PICK;
 			path = p;
-			destination = p.back();
 		}
 		else {
 			plan.push_back(p);
-			destination = plan.back().back();
 		}
+		destination = p.back();
 		return *this;
 	}
 	char NextAction() {
 		if (status == IDLE) return 'S';
-		if (path_it >= path.size() - 1) {
+		if (path_it >= path.size() - 1 && path.size() != 0) {
 			if (status == PICK) return 'T';
 			else if (status == DROP) return 'P';
-			else return 'S';
 		}
 		else {
 			if (path[path_it].x < path[path_it + 1].x) return 'R';
@@ -136,20 +133,11 @@ public:
 			if (!plan.empty()) {
 				path = plan.front();
 				plan.pop_front();
-				destination = plan.empty() ? path.back() : plan.back().back();
-				if (a == 'T') {
-					status = DROP;
-					path_it = 0;
-				}
-				else {
-					if (position == path.back()) {
-						status = IDLE;
-						return;
-					}
-					else 
-					status = PICK;
-				}
+				if (a == 'T') status = DROP;
+				else status = PICK;
+				path_it = 0;
 			}
+			else status = IDLE;
 		}
 		else if (a == 'U') {
 			path_it++;
