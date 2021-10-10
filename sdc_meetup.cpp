@@ -26,11 +26,6 @@ enum RobotStatus {
 	DROP
 };
 
-struct Route {
-	uint16_t length = 0;
-	vector<Coord> path;
-};
-
 using MapGrid = vector<vector<int>>;
 
 vector<Coord> WaveSearch(Coord pos, Coord dest, MapGrid& grid) {
@@ -39,33 +34,36 @@ vector<Coord> WaveSearch(Coord pos, Coord dest, MapGrid& grid) {
 	MapGrid field = grid;
 	int step = 0, x, y, nd;
 	bool stop = false;
-	if (pos.x > 0 || pos.y > 0 || pos.x < field.size() || pos.y < field.size()) {
-		return {{-10, -10}};
+	if (pos.x < 0 || pos.y < 0 || pos.x >= field.size() || pos.y >= field.size()) {
+		return {};
 	}
 	field[pos.y][pos.x] = 0;
 	do {
-		for (y = pos.y; y < field.size(); ++y)
-			for (x = pos.x; x < field.size(); ++x)
+		stop = true;
+		for (y = 0; y < field.size(); ++y)
+			for (x = 0; x < field.size(); ++x)
 				if (field[y][x] == step) {
 					for (nd = 0; nd < 4; ++nd) {
 						int ny = y + movey[nd];
 						int nx = x + movex[nd];
 						if (ny >= 0 && ny < field.size() && nx >= 0 && nx < field.size() && field[ny][nx] == PointStatus::EMPTY) {
 							field[ny][nx] = step + 1;
+							stop = false;
 						}
 					}
 				}
 		++step;
-	} while (!stop);
-	if (field[dest.y][dest.x] == PointStatus::EMPTY) return {{-10, -10}};
+	} while (!stop && field[dest.y][dest.x] == EMPTY);
+	if (field[dest.y][dest.x] == PointStatus::EMPTY) return {};
 
 	int len = field[dest.y][dest.x];
 	x = dest.x;
 	y = dest.y;
-	vector<Coord> path(len);
+	vector<Coord> path(len + 1);
+	if (dest == pos) return {};
 	while (step > 0)
 	  {
-	    path[step].x = x;
+		path[step].x = x;
 	    path[step].y = y;
 	    --step;
 	    for (nd = 0; nd < 4; ++nd)
@@ -104,6 +102,10 @@ public:
 		return result;
 	}
 	Robot& AssignRoute(vector<Coord> p) {
+		if (p.empty()) return *this;
+		/*for (auto a : p) {
+			cout << a.x << a.y << ' ';
+		}*/
 		if (status == IDLE) {
 			status = PICK;
 			path = p;
@@ -114,9 +116,9 @@ public:
 		destination = p.back();
 		return *this;
 	}
-	char NextAction() {
+	char DecideAction() {
 		if (status == IDLE) return 'S';
-		if (path_it >= path.size() - 1 && path.size() != 0) {
+		if (path_it >= path.size() - 1 && path.size() >= 2) {
 			if (status == PICK) return 'T';
 			else if (status == DROP) return 'P';
 		}
@@ -137,7 +139,11 @@ public:
 				else status = PICK;
 				path_it = 0;
 			}
-			else status = IDLE;
+			else {
+				path.clear();
+				path_it = 0;
+				status = IDLE;
+			}
 		}
 		else if (a == 'U') {
 			path_it++;
@@ -186,6 +192,7 @@ public:
 		for (size_t x = 0; x < n; ++x) {
 			robots[x].GetPos().x = (x + 1) * city.size() / (n + 1);
 			robots[x].GetPos().y = robots[x].GetPos().x;
+			robots[x].GetDest() = robots[x].GetPos();
 		}
 	}
 	void PlaceOrder(Coord start, Coord finish) {
@@ -227,17 +234,25 @@ int main() {
 		uint16_t srow, scol, frow, fcol;
 		for (int l = 0; l < k; ++l) {
 			cin >> srow >> scol >> frow >> fcol;
-			manager.PlaceOrder({scol, srow}, {fcol, frow});
+			manager.PlaceOrder({scol-1, srow-1}, {fcol-1, frow-1});
 		}
 		for (Robot r : manager.GetRobots()) {
 			for (uint8_t t = 0; t < 60; ++t) {
-				char a = r.NextAction();
+				char a = r.DecideAction();
 				cout << a;
 				r.DoAction(a);
 			}
-			cout << "\n";
+			cout << endl;
 		}
 	}
-
+	/*uint16_t N = 4;
+	RobotManager manager(N);
+	for (uint16_t j = 0; j < N; ++j) {
+		for (uint16_t i = 0; i < N; ++i) {
+			manager.GetMap()[j][i] = PointStatus::EMPTY;
+		}
+	}
+	manager.InitializeRobots(1);
+	manager.PlaceOrder({0, 0}, {3, 3});*/	
 	return 0;
 }
